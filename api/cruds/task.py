@@ -1,4 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine import Result
+from sqlalchemy import select
+
+from typing import List, Tuple
 
 import api.models.task as task_model
 import api.schemas.task as task_schema
@@ -12,3 +16,16 @@ async def create_task(
     await db.commit()
     await db.refresh(task)  # Taskインスタンスを更新し、作成したレコードのIDを取得する
     return task
+
+
+async def get_tasks_with_done(db: AsyncSession) -> List[Tuple[int, str, bool]]:
+    res: Result = await(
+        db.execute(
+            select(
+                task_model.Task.id,
+                task_model.Task.title,
+                task_model.Done.id.isnot(None).label("done"),
+            ).outerjoin(task_model.Done)
+        )
+    )
+    return res.all()
